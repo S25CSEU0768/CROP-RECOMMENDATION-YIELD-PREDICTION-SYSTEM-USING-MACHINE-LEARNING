@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Recommendation & Yield Prediction System</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Lucide Icons (Local + CDN fallback) -->
+    <script src="{{ url_for('static', filename='js/lucide.min.js') }}"></script>
+    <script>window.lucide || document.write('<script src="https://unpkg.com/lucide@latest"><\/script>')</script>
+    <!-- Chart.js (Local + CDN fallback) -->
+    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+    <script>window.Chart || document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js"><\/script>')</script>
+
+    <!-- App Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col antialiased selection:bg-emerald-100 selection:text-emerald-900">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="showSection('landing')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-500/20">
+                    <i data-lucide="sprout" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <span class="text-base sm:text-lg font-extrabold tracking-tight text-slate-900">Crop Recommendation <span class="text-emerald-600">& Yield Prediction</span></span>
+                    <span class="hidden sm:inline-block ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">Two-Stage ML</span>
+                </div>
+            </div>
+
+            <!-- Navigation Links (Desktop) -->
+            <nav class="hidden md:flex items-center gap-1 sm:gap-2">
+                <button onclick="showSection('landing')" id="nav-landing" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors bg-emerald-50 text-emerald-700">
+                    Home & Mission
+                </button>
+                <button onclick="showSection('dashboard')" id="nav-dashboard" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+                    AI Advisory
+                </button>
+                <button onclick="showSection('history')" id="nav-history" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+                    Past Advisories
+                </button>
+                <button onclick="showSection('benchmarks')" id="nav-benchmarks" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+                    ML Benchmarks
+                </button>
+                <button onclick="showSection('about')" id="nav-about" class="nav-btn px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+                    Team Rocket
+                </button>
+            </nav>
+
+            <!-- Distinct Authentication Controls & Mobile Menu Toggle -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                
+                <!-- Unauthenticated State: Distinct Login & Create Account Buttons -->
+                <div id="auth-buttons-unlogged" class="flex items-center gap-2">
+                    <button onclick="showSection('login')" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-700 hover:text-emerald-700 hover:bg-slate-100 transition-all flex items-center gap-1.5">
+                        <i data-lucide="log-in" class="w-4 h-4"></i>
+                        <span>Login</span>
+                    </button>
+                    <button onclick="showSection('register')" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-emerald-600/20 transition-all flex items-center gap-1.5">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        <span>Create Account</span>
+                    </button>
+                </div>
+
+                <!-- Authenticated State: Active Profile Pill + Logout -->
+                <div id="auth-buttons-logged" class="hidden flex items-center gap-3">
+                    <div class="text-right hidden sm:block cursor-pointer" onclick="showSection('dashboard')">
+                        <p class="text-xs font-bold text-slate-900 leading-tight" id="nav-user-name">Ramesh Kumar</p>
+                        <p class="text-[11px] text-slate-500" id="nav-user-farm">5.0 Acres • UP</p>
+                    </div>
+                    <div onclick="showSection('dashboard')" class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 font-bold flex items-center justify-center border border-emerald-300 text-xs shadow-sm cursor-pointer hover:ring-2 hover:ring-emerald-400 transition-all" id="nav-user-avatar" title="View Profile Dashboard">
+                        RK
+                    </div>
+                    <button onclick="logoutFarmer()" title="Logout" class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+
+                <!-- Mobile Hamburger Button -->
+                <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors" aria-label="Toggle navigation menu">
+                    <i data-lucide="menu" class="w-5 h-5" id="mobile-menu-icon"></i>
+                </button>
+
+            </div>
+
+        </div>
+
+        <!-- Mobile Navigation Menu Dropdown -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md px-4 pt-2 pb-4 space-y-1 shadow-lg">
+            <button onclick="showSection('landing'); toggleMobileMenu(false);" class="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-all flex items-center gap-2">
+                <i data-lucide="home" class="w-4 h-4 text-emerald-600"></i> Home & Mission
+            </button>
+            <button onclick="showSection('dashboard'); toggleMobileMenu(false);" class="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-all flex items-center gap-2">
+                <i data-lucide="sprout" class="w-4 h-4 text-emerald-600"></i> AI Advisory
+            </button>
+            <button onclick="showSection('history'); toggleMobileMenu(false);" class="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-all flex items-center gap-2">
+                <i data-lucide="history" class="w-4 h-4 text-emerald-600"></i> Past Advisories
+            </button>
+            <button onclick="showSection('benchmarks'); toggleMobileMenu(false);" class="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-all flex items-center gap-2">
+                <i data-lucide="award" class="w-4 h-4 text-emerald-600"></i> ML Benchmarks
+            </button>
+            <button onclick="showSection('about'); toggleMobileMenu(false);" class="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-all flex items-center gap-2">
+                <i data-lucide="users" class="w-4 h-4 text-emerald-600"></i> Team Rocket
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- ============================================================ -->
+        <!-- VIEW 1: HOME & MISSION (WELCOME LANDING PAGE) -->
+        <!-- ============================================================ -->
+        <div id="view-landing" class="space-y-16">
+            
+            <!-- Hero Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-2 pb-6">
+                
+                <div class="lg:col-span-7 space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Precision Agriculture Initiative • Bennett University
+                    </div>
+
+                    <h1 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
+                        Empowering Farmers with <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-600">Smart Crop & Harvest Intelligence</span>
+                    </h1>
+
+                    <p class="text-slate-600 text-base sm:text-lg leading-relaxed">
+                        Traditional intuition is no longer enough with unpredictable monsoons and changing soil health. Our machine learning platform analyzes your soil nutrients, local climate, land acreage, and investment budget to recommend the most profitable crop and accurately forecast your expected harvest.
+                    </p>
+
+                    <!-- Distinct Action Buttons -->
+                    <div class="flex flex-wrap items-center gap-3 pt-2">
+                        <button onclick="showSection('register')" class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm sm:text-base shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-2 group">
+                            <span>Create Free Account</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 transition-transform group-hover:translate-x-1"></i>
+                        </button>
+                        <button onclick="showSection('login')" class="px-5 py-3.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm sm:text-base border border-slate-200 transition-all flex items-center gap-2">
+                            <i data-lucide="log-in" class="w-4 h-4 text-emerald-600"></i>
+                            <span>Already registered? Login</span>
+                        </button>
+                    </div>
+
+                    <!-- Metrics Bar (Interactive) -->
+                    <div class="pt-6 border-t border-slate-200/80 grid grid-cols-3 gap-3">
+                        <div onclick="showSection('benchmarks')" class="cursor-pointer p-2.5 rounded-xl hover:bg-emerald-50/50 hover:border-emerald-200 border border-transparent transition-all group" title="Click to view model benchmarks">
+                            <span class="text-2xl sm:text-3xl font-black text-slate-900 group-hover:text-emerald-600 transition-colors block">99.55%</span>
+                            <span class="text-xs text-slate-500 font-medium flex items-center gap-0.5 group-hover:text-slate-700">Accuracy (RF) <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400 group-hover:text-emerald-600 transition-transform group-hover:translate-x-0.5"></i></span>
+                        </div>
+                        <div onclick="showSection('dashboard')" class="cursor-pointer p-2.5 rounded-xl hover:bg-emerald-50/50 hover:border-emerald-200 border border-transparent transition-all group" title="Click to open AI Advisory">
+                            <span class="text-2xl sm:text-3xl font-black text-emerald-600 block">22+</span>
+                            <span class="text-xs text-slate-500 font-medium flex items-center gap-0.5 group-hover:text-slate-700">Major Crops <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400 group-hover:text-emerald-600 transition-transform group-hover:translate-x-0.5"></i></span>
+                        </div>
+                        <div onclick="showSection('history')" class="cursor-pointer p-2.5 rounded-xl hover:bg-emerald-50/50 hover:border-emerald-200 border border-transparent transition-all group" title="Click to view database history">
+                            <span class="text-2xl sm:text-3xl font-black text-blue-600 block">SQLite</span>
+                            <span class="text-xs text-slate-500 font-medium flex items-center gap-0.5 group-hover:text-slate-700">Farmer DB <i data-lucide="chevron-right" class="w-3 h-3 text-slate-400 group-hover:text-blue-600 transition-transform group-hover:translate-x-0.5"></i></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Photo Card -->
+                <div class="lg:col-span-5 relative">
+                    <div class="relative rounded-3xl overflow-hidden card-shadow border border-slate-200/90 group">
+                        <img src="/static/images/hero_farm.jpg" alt="Indian Agricultural Field" class="w-full h-[440px] object-cover object-center group-hover:scale-105 transition-transform duration-700">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>
+
+                        <!-- Floating Live Preview Pill (Clickable) -->
+                        <div onclick="showSection('dashboard'); triggerPrediction();" class="cursor-pointer absolute bottom-6 left-6 right-6 p-4 rounded-2xl bg-white/95 backdrop-blur-md border border-white/20 shadow-xl space-y-2 hover:scale-[1.02] hover:shadow-2xl transition-all duration-200 group" title="Click to launch AI Advisory simulator with this crop">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> AI Recommendation Preview
+                                </span>
+                                <span class="text-xs font-extrabold text-slate-900 group-hover:text-emerald-700 transition-colors flex items-center gap-1">
+                                    94.4% Fit <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between pt-1">
+                                <div>
+                                    <h4 class="text-lg font-black text-slate-900 group-hover:text-emerald-700 transition-colors">🌾 Rice (Oryza Sativa)</h4>
+                                    <p class="text-xs text-slate-500">Predicted Yield: <strong>1.76 Tons / Hectare</strong></p>
+                                </div>
+                                <span class="text-xs font-bold text-emerald-700 bg-emerald-100 group-hover:bg-emerald-600 group-hover:text-white px-3 py-1.5 rounded-xl transition-colors flex items-center gap-1">
+                                    <span>Try Simulator</span> <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- "How We Help You" 3-Step Process (Clickable Cards) -->
+            <div class="space-y-8 pt-6">
+                <div class="text-center max-w-2xl mx-auto space-y-2">
+                    <span class="text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                        Simple 3-Step Process
+                    </span>
+                    <h2 class="text-2xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">How Our System Helps You Succeed</h2>
+                    <p class="text-sm sm:text-base text-slate-600">
+                        Designed for simplicity, clarity, and real-world farm decision making. Click any step below to get started.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Step 1 Card: Clickable to Register -->
+                    <div onclick="showSection('register')" class="cursor-pointer bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow card-hover flex flex-col justify-between group hover:border-emerald-300 transition-all" title="Click to create your farm profile">
+                        <div>
+                            <div class="h-44 rounded-xl overflow-hidden mb-5">
+                                <img src="/static/images/farmer_inspect.jpg" alt="Farmer in field" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            </div>
+                            <span class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center mb-3">1</span>
+                            <h3 class="text-lg font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">Create Account & Farm Profile</h3>
+                            <p class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+                                Register your account with your name, farm location, acreage, and planned seasonal budget. Your details are saved securely so you can log in anytime.
+                            </p>
+                        </div>
+                        <div class="pt-4 mt-4 border-t border-slate-100 text-xs text-emerald-700 font-bold flex items-center justify-between group-hover:text-emerald-800">
+                            <span>Step 1: Set Up Profile</span>
+                            <span class="flex items-center gap-1 text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Start Now <i data-lucide="arrow-right" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1"></i></span>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 Card: Clickable to Advisory -->
+                    <div onclick="showSection('dashboard')" class="cursor-pointer bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow card-hover flex flex-col justify-between group hover:border-blue-300 transition-all" title="Click to test soil & climate models">
+                        <div>
+                            <div class="h-44 rounded-xl overflow-hidden mb-5">
+                                <img src="/static/images/smart_tech.jpg" alt="Smart agriculture technology" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            </div>
+                            <span class="w-7 h-7 rounded-lg bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center mb-3">2</span>
+                            <h3 class="text-lg font-bold text-slate-900 group-hover:text-blue-700 transition-colors">AI Analyzes Soil & Climate</h3>
+                            <p class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+                                Our trained Random Forest model evaluates soil nutrients (Nitrogen, Phosphorus, Potassium), rainfall, and temperature across 22 crops.
+                            </p>
+                        </div>
+                        <div class="pt-4 mt-4 border-t border-slate-100 text-xs text-blue-700 font-bold flex items-center justify-between group-hover:text-blue-800">
+                            <span>Stage 1: Multi-Class ML</span>
+                            <span class="flex items-center gap-1 text-[11px] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Test Model <i data-lucide="arrow-right" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1"></i></span>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 Card: Clickable to Harvest Forecast -->
+                    <div onclick="showSection('dashboard')" class="cursor-pointer bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow card-hover flex flex-col justify-between group hover:border-purple-300 transition-all" title="Click to forecast yield & profits">
+                        <div>
+                            <div class="h-44 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 p-6 text-white flex flex-col justify-center mb-5 group-hover:from-emerald-700 group-hover:to-teal-900 transition-colors">
+                                <i data-lucide="trending-up" class="w-8 h-8 text-emerald-300 mb-2"></i>
+                                <span class="text-xs uppercase tracking-wider text-emerald-200 font-semibold">Yield & Profit Intelligence</span>
+                                <h4 class="text-2xl font-black mt-1">Expected Harvest Forecast</h4>
+                            </div>
+                            <span class="w-7 h-7 rounded-lg bg-purple-100 text-purple-800 font-bold text-xs flex items-center justify-center mb-3">3</span>
+                            <h3 class="text-lg font-bold text-slate-900 group-hover:text-purple-700 transition-colors">Get Actionable Blueprint</h3>
+                            <p class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+                                Receive clear recommendations on what to plant, your estimated harvest in metric tons, and expected financial returns based on market rates.
+                            </p>
+                        </div>
+                        <div class="pt-4 mt-4 border-t border-slate-100 text-xs text-purple-700 font-bold flex items-center justify-between group-hover:text-purple-800">
+                            <span>Stage 2: Regional Regression</span>
+                            <span class="flex items-center gap-1 text-[11px] bg-purple-50 px-2 py-0.5 rounded border border-purple-200">View Yield <i data-lucide="arrow-right" class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1"></i></span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- CTA Banner -->
+            <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 rounded-3xl p-8 sm:p-10 text-white text-center sm:text-left card-shadow flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div class="space-y-2 max-w-xl">
+                    <h3 class="text-2xl sm:text-3xl font-extrabold">Ready to Optimize Your Agricultural Harvest?</h3>
+                    <p class="text-slate-300 text-xs sm:text-sm">
+                        Create your account in 3 quick steps or login to view your personalized farm dashboard.
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="showSection('register')" class="px-6 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-sm shadow-xl transition-all whitespace-nowrap">
+                        Create Account
+                    </button>
+                    <button onclick="showSection('login')" class="px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 transition-all whitespace-nowrap">
+                        Login
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VIEW 2: DEDICATED LOGIN PAGE -->
+        <!-- ============================================================ -->
+        <div id="view-login" class="hidden max-w-md mx-auto py-8">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 card-shadow border border-slate-200 space-y-6">
+                
+                <div class="text-center space-y-2">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto">
+                        <i data-lucide="log-in" class="w-6 h-6"></i>
+                    </div>
+                    <h2 class="text-2xl font-black text-slate-900">Welcome Back</h2>
+                    <p class="text-xs text-slate-500">Enter your registered phone number and password to access your farm advisory.</p>
+                </div>
+
+                <!-- Error Banner -->
+                <div id="login-error" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-semibold flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+                    <span id="login-error-msg">Error message</span>
+                </div>
+
+                <form onsubmit="event.preventDefault(); submitLogin();" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Phone Number or Full Name *</label>
+                        <input type="text" id="login-id" required placeholder="+919876543210 or Ramesh Kumar" value="+919876543210" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Password *</label>
+                        <input type="password" id="login-pass" required placeholder="••••••••" value="farmer123" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all">
+                    </div>
+
+                    <button type="submit" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                        <span>Login to Farm Dashboard</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </form>
+
+                <div class="pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+                    Don't have an account yet? 
+                    <button onclick="showSection('register')" class="font-bold text-emerald-700 hover:underline">
+                        Create Account
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VIEW 3: DEDICATED CREATE ACCOUNT PAGE (3-STEP WIZARD) -->
+        <!-- ============================================================ -->
+        <div id="view-register" class="hidden max-w-lg mx-auto py-8">
+            <div class="bg-white rounded-3xl p-6 sm:p-8 card-shadow border border-slate-200 space-y-6">
+                
+                <!-- Stepper Progress Header -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200" id="reg-step-badge">
+                            Step 1 of 3: Personal Details
+                        </span>
+                        <span class="text-xs font-bold text-slate-400" id="reg-step-percent">33%</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div id="reg-progress-bar" class="h-full bg-emerald-500 transition-all duration-300 w-1/3"></div>
+                    </div>
+                </div>
+
+                <!-- Main Error Banner -->
+                <div id="reg-error" class="hidden p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-semibold flex items-start gap-2.5">
+                    <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5"></i>
+                    <div class="flex-grow">
+                        <span id="reg-error-msg">Error</span>
+                        <div id="reg-error-action" class="hidden mt-1.5">
+                            <button type="button" onclick="showSection('login')" class="underline font-bold text-red-800 hover:text-red-950">
+                                Click here to Login instead →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="form-register" onsubmit="event.preventDefault(); submitRegister();" novalidate class="space-y-4">
+                    
+                    <!-- STEP 1: PERSONAL INFORMATION -->
+                    <div id="step-1" class="step-transition space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Personal Information</h3>
+                                <p class="text-xs text-slate-500">Tell us who you are to personalize your farm advisory.</p>
+                            </div>
+                            <button type="button" onclick="fillDemoRegister()" class="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 transition-colors">
+                                ⚡ Fill Demo Info
+                            </button>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Farmer Full Name *</label>
+                            <input type="text" id="r-name" placeholder="e.g. Ramesh Kumar" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" onkeydown="if(event.key==='Enter'){event.preventDefault();validateStep1AndNext();}">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Phone / WhatsApp *</label>
+                                <input type="tel" id="r-phone" placeholder="e.g. 9876543210" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" onkeydown="if(event.key==='Enter'){event.preventDefault();validateStep1AndNext();}">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Create Password *</label>
+                                <input type="password" id="r-password" placeholder="Min 4 characters" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" onkeydown="if(event.key==='Enter'){event.preventDefault();validateStep1AndNext();}">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Age</label>
+                                <input type="number" id="r-age" min="16" max="100" value="38" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" onkeydown="if(event.key==='Enter'){event.preventDefault();validateStep1AndNext();}">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Gender</label>
+                                <select id="r-gender" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all">
+                                    <option value="Male" selected>Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="button" onclick="validateStep1AndNext()" class="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow transition-all flex items-center justify-center gap-2">
+                                <span>Continue to Farm Location</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: LAND & LOCATION -->
+                    <div id="step-2" class="step-transition space-y-4 hidden">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">Farm Location & Acreage</h3>
+                            <p class="text-xs text-slate-500">Configures regional climate data and production baseline.</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">State / Territory *</label>
+                            <select id="r-state" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all">
+                                {% for state in states %}
+                                    <option value="{{ state }}" {% if state == "Uttar Pradesh" %}selected{% endif %}>{{ state }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">District / Tehsil</label>
+                            <input type="text" id="r-district" placeholder="e.g. Varanasi" value="Varanasi" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" onkeydown="if(event.key==='Enter'){event.preventDefault();validateStep2AndNext();}">
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-xs font-bold text-slate-700">Total Cultivable Land *</label>
+                                <div class="flex items-center gap-2 text-xs">
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="r-unit" value="Acres" checked class="peer sr-only" onchange="document.getElementById('r-unit-label').textContent = 'Acres'">
+                                        <span class="px-2.5 py-0.5 rounded border border-slate-200 peer-checked:bg-emerald-600 peer-checked:text-white text-[11px] font-semibold transition-all">Acres</span>
+                                    </label>
+                                    <label class="cursor-pointer">
+                                        <input type="radio" name="r-unit" value="Hectares" class="peer sr-only" onchange="document.getElementById('r-unit-label').textContent = 'Hectares'">
+                                        <span class="px-2.5 py-0.5 rounded border border-slate-200 peer-checked:bg-emerald-600 peer-checked:text-white text-[11px] font-semibold transition-all">Hectares</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="relative">
+                                <input type="number" id="r-area" min="0.1" max="10000" step="0.5" value="5.0" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" onkeydown="if(event.key==='Enter'){event.preventDefault();validateStep2AndNext();}">
+                                <span class="absolute right-3.5 top-2.5 text-xs text-slate-400 font-semibold" id="r-unit-label">Acres</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 flex items-center gap-3">
+                            <button type="button" onclick="setStep(1)" class="w-1/3 py-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-sm transition-all">
+                                Back
+                            </button>
+                            <button type="button" onclick="validateStep2AndNext()" class="w-2/3 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow transition-all flex items-center justify-center gap-2">
+                                <span>Next: Budget & Goals</span>
+                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: INVESTMENT & GOALS -->
+                    <div id="step-3" class="step-transition space-y-4 hidden">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">Budget & Farming Goals</h3>
+                            <p class="text-xs text-slate-500">Calculates expected revenue, net profit, and percentage ROI.</p>
+                        </div>
+
+                        <!-- Step 3 Inline Error Banner -->
+                        <div id="reg-error-step3" class="hidden p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-semibold flex items-start gap-2.5">
+                            <i data-lucide="alert-circle" class="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5"></i>
+                            <div class="flex-grow">
+                                <span id="reg-error-step3-msg">Error</span>
+                                <div id="reg-error-step3-action" class="hidden mt-1.5">
+                                    <button type="button" onclick="showSection('login')" class="underline font-bold text-red-800 hover:text-red-950">
+                                        Click here to Login instead →
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-bold text-slate-700">Planned Seasonal Budget (₹) *</label>
+                                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200" id="r-budget-preview">₹50,000</span>
+                            </div>
+                            <input type="number" id="r-budget" min="1000" max="5000000" step="5000" value="50000" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" oninput="document.getElementById('r-budget-preview').textContent = '₹' + Number(this.value).toLocaleString('en-IN')" onkeydown="if(event.key==='Enter'){event.preventDefault();submitRegister();}">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Primary Farming Objective</label>
+                            <select id="r-goal" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all">
+                                <option value="Maximum Profitability" selected>Maximum Profitability & High Yield</option>
+                                <option value="Low Water & Drought Resistant">Low Water Requirement</option>
+                                <option value="Fast Cash Turnover">Fast Harvest & Cash Turnover</option>
+                                <option value="Soil Regeneration">Soil Regeneration (Pulses/Legumes)</option>
+                            </select>
+                        </div>
+
+                        <div class="pt-2 flex items-center gap-3">
+                            <button type="button" onclick="setStep(2)" class="w-1/3 py-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-sm transition-all">
+                                Back
+                            </button>
+                            <button type="button" id="btn-create-account" onclick="submitRegister()" class="w-2/3 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                                <span id="btn-create-text">Create Account & Save</span>
+                                <i id="btn-create-icon" data-lucide="check" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+
+                <div class="pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+                    Already have an account? 
+                    <button onclick="showSection('login')" class="font-bold text-emerald-700 hover:underline">
+                        Login here
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VIEW 4: PERSONALIZED AI ADVISORY DASHBOARD -->
+        <!-- ============================================================ -->
+        <div id="view-dashboard" class="hidden space-y-8">
+            
+            <!-- Farmer Profile Welcome Banner -->
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white font-black text-base flex items-center justify-center shadow-md shadow-emerald-600/20" id="dash-avatar">
+                        FS
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-lg sm:text-xl font-extrabold text-slate-900" id="dash-farmer-name">Farm Simulation & AI Advisory</h2>
+                            <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 flex items-center gap-1 border border-slate-200" id="dash-farmer-status-badge">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-600"></i> Interactive Simulator
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-0.5" id="dash-farmer-meta">
+                            Location: <strong>Varanasi, Uttar Pradesh</strong> • Cultivable Land: <strong>5.0 Acres</strong> • Budget: <strong>₹50,000</strong>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="openEditProfileModal()" class="text-xs font-bold px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center gap-1.5 shadow-sm">
+                        <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-emerald-600"></i> Edit Budget & Land
+                    </button>
+                    <button onclick="showSection('history')" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5">
+                        <i data-lucide="history" class="w-3.5 h-3.5 text-slate-500"></i> Past Advisories
+                    </button>
+                    <button onclick="showSection('register')" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-1.5">
+                        <i data-lucide="user-plus" class="w-3.5 h-3.5 text-slate-500"></i> Switch Profile
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Preset Profiles -->
+            <div class="bg-white rounded-xl p-4 border border-slate-200/80 card-shadow">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i> 1-Click Soil Test Presets:
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="button" data-preset="rice" onclick="applyPreset('rice')" class="preset-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 text-white shadow-sm border border-emerald-600 transition-all">
+                            🌾 Rice (Monsoon)
+                        </button>
+                        <button type="button" data-preset="maize" onclick="applyPreset('maize')" class="preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-slate-200 transition-all text-slate-700">
+                            🌽 Maize (Loam)
+                        </button>
+                        <button type="button" data-preset="apple" onclick="applyPreset('apple')" class="preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-slate-200 transition-all text-slate-700">
+                            🍎 Apple (Hills)
+                        </button>
+                        <button type="button" data-preset="coffee" onclick="applyPreset('coffee')" class="preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-slate-200 transition-all text-slate-700">
+                            ☕ Coffee (Subtropical)
+                        </button>
+                        <button type="button" data-preset="cotton" onclick="applyPreset('cotton')" class="preset-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-slate-200 transition-all text-slate-700">
+                            🌿 Cotton (Black Soil)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two-Column Layout: Controls on Left, Results on Right -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- Left: Soil & Climate Controls (7 cols) -->
+                <div class="lg:col-span-7 space-y-6">
+                    <!-- Dynamic Prediction Error Banner -->
+                    <div id="prediction-error-banner" class="hidden p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="alert-circle" class="w-5 h-5 text-red-600 flex-shrink-0"></i>
+                            <span id="prediction-error-text">Cannot connect to machine learning server. Please ensure backend is running.</span>
+                        </div>
+                        <button type="button" onclick="triggerPrediction()" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-all flex-shrink-0">
+                            Retry
+                        </button>
+                    </div>
+
+                    <form id="prediction-form" class="space-y-6" onsubmit="event.preventDefault(); triggerPrediction();">
+                        
+                        <!-- Soil Macronutrients -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow">
+                            <div class="flex items-center gap-2 mb-4">
+                                <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                    <i data-lucide="layers" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-900">Soil Macronutrients (NPK)</h3>
+                                    <p class="text-xs text-slate-500">Elemental ratios from your soil health testing card</p>
+                                </div>
+                            </div>
+
+                            <div class="space-y-5">
+                                <div>
+                                    <div class="flex justify-between items-center mb-1.5 text-xs font-medium">
+                                        <label for="n" class="text-slate-700 font-semibold">Nitrogen (N)</label>
+                                        <span id="n-val" class="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 tabular-nums min-w-[75px] text-center">90 mg/kg</span>
+                                    </div>
+                                    <input type="range" id="n" min="0" max="140" value="90" step="1" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" oninput="syncVal('n', 'mg/kg')" onchange="triggerPrediction()">
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between items-center mb-1.5 text-xs font-medium">
+                                        <label for="p" class="text-slate-700 font-semibold">Phosphorus (P)</label>
+                                        <span id="p-val" class="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 tabular-nums min-w-[75px] text-center">42 mg/kg</span>
+                                    </div>
+                                    <input type="range" id="p" min="5" max="145" value="42" step="1" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" oninput="syncVal('p', 'mg/kg')" onchange="triggerPrediction()">
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between items-center mb-1.5 text-xs font-medium">
+                                        <label for="k" class="text-slate-700 font-semibold">Potassium (K)</label>
+                                        <span id="k-val" class="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200 tabular-nums min-w-[75px] text-center">43 mg/kg</span>
+                                    </div>
+                                    <input type="range" id="k" min="5" max="205" value="43" step="1" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" oninput="syncVal('k', 'mg/kg')" onchange="triggerPrediction()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Climate Parameters -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow">
+                            <div class="flex items-center gap-2 mb-4">
+                                <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center">
+                                    <i data-lucide="cloud-sun" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-900">Climate & Soil Chemistry</h3>
+                                    <p class="text-xs text-slate-500">Environmental factors influencing germination and vegetative yield</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div>
+                                    <div class="flex justify-between items-center mb-1.5 text-xs font-medium">
+                                        <label for="temperature" class="text-slate-700 font-semibold">Temperature</label>
+                                        <span id="temperature-val" class="font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded tabular-nums min-w-[75px] text-center">21.0 °C</span>
+                                    </div>
+                                    <input type="range" id="temperature" min="8.0" max="45.0" value="21.0" step="0.5" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" oninput="syncVal('temperature', '°C')" onchange="triggerPrediction()">
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between items-center mb-1.5 text-xs font-medium">
+                                        <label for="humidity" class="text-slate-700 font-semibold">Relative Humidity</label>
+                                        <span id="humidity-val" class="font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded tabular-nums min-w-[75px] text-center">82.0 %</span>
+                                    </div>
+                                    <input type="range" id="humidity" min="10.0" max="100.0" value="82.0" step="1.0" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" oninput="syncVal('humidity', '%')" onchange="triggerPrediction()">
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between items-center mb-1.5 text-xs font-medium">
+                                        <label for="ph" class="text-slate-700 font-semibold">Soil pH</label>
+                                        <span id="ph-val" class="font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded tabular-nums min-w-[75px] text-center">6.5 pH</span>
+                                    </div>
+                                    <input type="range" id="ph" min="3.5" max="10.0" value="6.5" step="0.1" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" oninput="syncVal('ph', 'pH')" onchange="triggerPrediction()">
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between items-center mb-1.5 text-xs font-medium">
+                                        <label for="rainfall" class="text-slate-700 font-semibold">Annual Rainfall</label>
+                                        <span id="rainfall-val" class="font-bold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded tabular-nums min-w-[75px] text-center">202 mm</span>
+                                    </div>
+                                    <input type="range" id="rainfall" min="20.0" max="300.0" value="202.0" step="1.0" class="w-full h-2 bg-slate-200 rounded-lg cursor-pointer" oninput="syncVal('rainfall', 'mm')" onchange="triggerPrediction()">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cultivation Season -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                    </div>
+                                    <h3 class="text-base font-bold text-slate-900">Upcoming Cultivation Season</h3>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {% for s in seasons %}
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="season_radio" value="{{ s }}" class="peer sr-only" {% if s == "Kharif" %}checked{% endif %} onchange="selectSeason('{{ s }}')">
+                                    <div class="p-3 rounded-xl border border-slate-200 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 peer-checked:text-emerald-900 text-xs font-semibold text-center transition-all text-slate-600 hover:border-slate-300">
+                                        {{ s }}
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" id="hidden_season" value="Kharif">
+                        </div>
+
+                        <!-- Primary Run Button (1 Clear Dedicated Trigger) -->
+                        <button type="button" id="btn-run-prediction" onclick="triggerPrediction()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-emerald-600/25 hover:shadow-emerald-600/40 transition-all flex items-center justify-center gap-2.5 group cursor-pointer">
+                            <i id="btn-run-icon" data-lucide="sparkles" class="w-5 h-5 text-emerald-200 transition-transform group-hover:scale-110"></i>
+                            <span id="btn-run-text">Run Two-Stage AI Prediction & Save to Account</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4 transition-transform group-hover:translate-x-1"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Right: Prediction & Economic ROI Output (5 cols) -->
+                <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
+                    
+                    <!-- Loading Placeholder -->
+                    <div id="loading-state" class="hidden bg-white rounded-2xl p-12 border border-slate-200 card-shadow text-center">
+                        <div class="inline-block animate-spin w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full mb-4"></div>
+                        <h4 class="font-bold text-slate-800">Processing Agricultural Intelligence...</h4>
+                        <p class="text-xs text-slate-500 mt-1">Evaluating 22 crop classification models & regional regression curves</p>
+                    </div>
+
+                    <!-- Results Panel -->
+                    <div id="results-panel" class="space-y-6">
+                        
+                        <!-- Primary Decision Hero Card -->
+                        <div class="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 rounded-2xl p-6 text-white shadow-xl card-hover relative overflow-hidden">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <span class="inline-block px-2.5 py-0.5 rounded-full bg-emerald-500/30 border border-emerald-300/30 text-[11px] font-bold uppercase tracking-wider text-emerald-100 mb-2">
+                                        Stage 1: Recommended Crop
+                                    </span>
+                                    <p class="text-xs text-emerald-100/90 font-medium">Optimal Agricultural Fit</p>
+                                    <h2 id="res-crop" class="text-3xl sm:text-4xl font-black tracking-tight mt-1">Rice</h2>
+                                </div>
+                                <div class="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex flex-col items-center justify-center text-center p-2">
+                                    <span id="res-confidence" class="text-lg font-black text-emerald-200">94.4%</span>
+                                    <span class="text-[9px] uppercase tracking-wider font-semibold text-emerald-300">Confidence</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 pt-4 border-t border-emerald-500/40 flex items-center justify-between text-xs">
+                                <span class="text-emerald-100 flex items-center gap-1.5">
+                                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-300"></i> High Agronomic Viability
+                                </span>
+                                <span class="text-emerald-200 font-medium">Logged in SQLite</span>
+                            </div>
+                        </div>
+
+                        <!-- Stage 2: Yield Forecast Card -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                                        <i data-lucide="trending-up" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm font-bold text-slate-900">Stage 2: Harvest Yield Forecast</h3>
+                                        <p class="text-[11px] text-slate-500">XGBoost Regional Regressor</p>
+                                    </div>
+                                </div>
+                                <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">R² = 0.757</span>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 my-2">
+                                <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70">
+                                    <span class="text-xs text-slate-500 font-medium block">Yield Rate</span>
+                                    <span id="res-yield" class="text-xl sm:text-2xl font-black text-slate-900 mt-1 block">1.76</span>
+                                    <span class="text-[11px] text-slate-400 font-medium">Tons / Hectare</span>
+                                </div>
+                                <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70">
+                                    <span class="text-xs text-slate-500 font-medium block">Total Expected Harvest</span>
+                                    <span id="res-prod" class="text-xl sm:text-2xl font-black text-emerald-600 mt-1 block">3.56</span>
+                                    <span class="text-[11px] text-slate-400 font-medium" id="res-area-tag">for 5.0 Acres</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comprehensive Cost of Cultivation & Budget Feasibility Card -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                        <i data-lucide="calculator" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm font-bold text-slate-900">Cost of Cultivation & Budget Feasibility</h3>
+                                        <p class="text-[11px] text-slate-500">CACP / ICAR Indian Agricultural Cost Standards</p>
+                                    </div>
+                                </div>
+                                <button onclick="openEditProfileModal()" class="text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1">
+                                    <i data-lucide="pencil" class="w-3 h-3"></i> Edit Budget
+                                </button>
+                            </div>
+
+                            <!-- Budget Feasibility Status Banner -->
+                            <div id="cost-feasibility-banner" class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-2.5">
+                                <i id="cost-feasibility-icon" data-lucide="check-circle" class="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5"></i>
+                                <div class="space-y-0.5 flex-grow">
+                                    <div class="flex items-center justify-between">
+                                        <span id="cost-feasibility-status" class="text-xs font-bold text-emerald-900">Budget Sufficient</span>
+                                        <span id="cost-delta-badge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-200/70 text-emerald-800">+₹12,000 Buffer</span>
+                                    </div>
+                                    <p id="cost-feasibility-advice" class="text-[11px] text-emerald-700 leading-relaxed">
+                                        Your planned budget covers the complete cultivation cost with an emergency buffer.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Budget vs Required Cost Comparison Bar -->
+                            <div class="grid grid-cols-2 gap-3 pt-1">
+                                <div class="bg-slate-50 rounded-xl p-3 border border-slate-200/70">
+                                    <span class="text-[11px] text-slate-500 font-medium block">Your Available Budget</span>
+                                    <span id="cost-avail-budget" class="text-base sm:text-lg font-black text-slate-900 mt-0.5 block">₹50,000</span>
+                                    <span class="text-[10px] text-slate-400">allocated for season</span>
+                                </div>
+                                <div class="bg-slate-50 rounded-xl p-3 border border-slate-200/70">
+                                    <span class="text-[11px] text-slate-500 font-medium block">Total Required Capital</span>
+                                    <span id="cost-total-required" class="text-base sm:text-lg font-black text-emerald-700 mt-0.5 block">₹88,000</span>
+                                    <span id="cost-per-acre-tag" class="text-[10px] text-slate-400 font-medium">₹17,600 / Acre</span>
+                                </div>
+                            </div>
+
+                            <!-- 4-Phase Agricultural Cost Breakdown Grid -->
+                            <div class="space-y-2 pt-1">
+                                <div class="flex items-center justify-between text-xs font-bold text-slate-700">
+                                    <span>Itemized Cultivation Phases</span>
+                                    <span class="text-[11px] font-normal text-slate-400" id="cost-breakdown-area-sub">for 5.0 Acres</span>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    
+                                    <!-- Phase 1: Planting & Seeds -->
+                                    <div class="bg-slate-50/80 rounded-xl p-3 border border-slate-200/60 hover:border-emerald-200 transition-colors">
+                                        <div class="w-6 h-6 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center mb-1.5">
+                                            <i data-lucide="sprout" class="w-3.5 h-3.5"></i>
+                                        </div>
+                                        <span class="text-[11px] font-bold text-slate-800 block">Planting & Seeds</span>
+                                        <span class="text-[10px] text-slate-400 block" id="cost-p1-rate">₹4,500/ac</span>
+                                        <span class="text-xs sm:text-sm font-black text-slate-900 mt-1 block" id="cost-p1-total">₹22,500</span>
+                                    </div>
+
+                                    <!-- Phase 2: Growing & Nutrients -->
+                                    <div class="bg-slate-50/80 rounded-xl p-3 border border-slate-200/60 hover:border-blue-200 transition-colors">
+                                        <div class="w-6 h-6 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center mb-1.5">
+                                            <i data-lucide="droplet" class="w-3.5 h-3.5"></i>
+                                        </div>
+                                        <span class="text-[11px] font-bold text-slate-800 block">Growing & Care</span>
+                                        <span class="text-[10px] text-slate-400 block" id="cost-p2-rate">₹6,500/ac</span>
+                                        <span class="text-xs sm:text-sm font-black text-slate-900 mt-1 block" id="cost-p2-total">₹32,500</span>
+                                    </div>
+
+                                    <!-- Phase 3: Cutting & Harvesting -->
+                                    <div class="bg-slate-50/80 rounded-xl p-3 border border-slate-200/60 hover:border-amber-200 transition-colors">
+                                        <div class="w-6 h-6 rounded-md bg-amber-100 text-amber-700 flex items-center justify-center mb-1.5">
+                                            <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
+                                        </div>
+                                        <span class="text-[11px] font-bold text-slate-800 block">Cutting & Harvest</span>
+                                        <span class="text-[10px] text-slate-400 block" id="cost-p3-rate">₹4,800/ac</span>
+                                        <span class="text-xs sm:text-sm font-black text-slate-900 mt-1 block" id="cost-p3-total">₹24,000</span>
+                                    </div>
+
+                                    <!-- Phase 4: Mandi Transport & Packaging -->
+                                    <div class="bg-slate-50/80 rounded-xl p-3 border border-slate-200/60 hover:border-purple-200 transition-colors">
+                                        <div class="w-6 h-6 rounded-md bg-purple-100 text-purple-700 flex items-center justify-center mb-1.5">
+                                            <i data-lucide="truck" class="w-3.5 h-3.5"></i>
+                                        </div>
+                                        <span class="text-[11px] font-bold text-slate-800 block">Mandi & Cartage</span>
+                                        <span class="text-[10px] text-slate-400 block" id="cost-p4-rate">₹1,800/ac</span>
+                                        <span class="text-xs sm:text-sm font-black text-slate-900 mt-1 block" id="cost-p4-total">₹9,000</span>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Financial ROI & Profit Potential Card -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                                        <i data-lucide="indian-rupee" class="w-4 h-4"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm font-bold text-slate-900">Financial & Return (ROI) Estimate</h3>
+                                        <p class="text-[11px] text-slate-500">Based on Indian APMC / MSP benchmarks</p>
+                                    </div>
+                                </div>
+                                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full" id="res-roi-badge">+56.6% ROI</span>
+                            </div>
+
+                            <div class="space-y-3 text-xs">
+                                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                                    <span class="text-slate-500">Total Cultivation Cost (Capital Needed):</span>
+                                    <span class="font-bold text-slate-900" id="res-budget-display">₹88,000</span>
+                                </div>
+                                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                                    <span class="text-slate-500">Estimated Market Rate:</span>
+                                    <span class="font-bold text-slate-900" id="res-market-rate">₹22,000 / ton</span>
+                                </div>
+                                <div class="flex justify-between py-1.5 border-b border-slate-100">
+                                    <span class="text-slate-500">Projected Gross Revenue:</span>
+                                    <span class="font-bold text-slate-900" id="res-gross-revenue">₹78,320</span>
+                                </div>
+                                <div class="flex justify-between py-2 bg-emerald-50/70 px-3 rounded-lg border border-emerald-200" id="res-profit-box">
+                                    <span class="font-bold text-emerald-950">Net Estimated Profit:</span>
+                                    <span class="font-black text-emerald-700 text-sm" id="res-net-profit">+₹28,320</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Probability Distribution Chart -->
+                        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow">
+                            <div class="flex items-center justify-between mb-3">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Crop Probability Distribution</h4>
+                                <span class="text-xs text-slate-400 font-medium">Softmax</span>
+                            </div>
+                            <div class="h-44">
+                                <canvas id="chart-confidence"></canvas>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VIEW 5: PAST ADVISORIES & DATABASE HISTORY -->
+        <!-- ============================================================ -->
+        <div id="view-history" class="hidden space-y-8">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-extrabold text-slate-900">Your Past Crop Advisories</h2>
+                    <p class="text-xs sm:text-sm text-slate-500">Securely saved records from your farm simulation sessions in SQLite database.</p>
+                </div>
+                <button onclick="fetchHistory()" class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-all flex items-center gap-1.5">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Records
+                </button>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow overflow-x-auto">
+                <div id="history-loading" class="py-8 text-center text-slate-400 text-xs hidden">
+                    <div class="inline-block animate-spin w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full mb-2"></div>
+                    <p>Loading historical records from database...</p>
+                </div>
+
+                <div id="history-empty" class="py-12 text-center text-slate-400 text-xs">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+                        <i data-lucide="file-clock" class="w-6 h-6"></i>
+                    </div>
+                    <p class="font-bold text-slate-700 text-sm">No Advisory Records Found</p>
+                    <p class="mt-1 max-w-sm mx-auto text-slate-500">Sign in with your farmer account or generate a new crop recommendation to automatically record your advisory history.</p>
+                    <div class="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                        <button onclick="showSection('dashboard')" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Run New Advisory
+                        </button>
+                        <button onclick="showSection('login')" class="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs transition-all flex items-center gap-1.5">
+                            <i data-lucide="log-in" class="w-3.5 h-3.5"></i> Sign In
+                        </button>
+                        <button onclick="showSection('register')" class="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold text-xs transition-all flex items-center gap-1.5">
+                            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i> Register Account
+                        </button>
+                    </div>
+                </div>
+
+                <table class="w-full text-left text-sm hidden" id="history-table">
+                    <thead>
+                        <tr class="border-b border-slate-200 bg-slate-50 text-slate-600 text-xs uppercase font-semibold">
+                            <th class="py-3 px-4">Date & Time</th>
+                            <th class="py-3 px-4">Recommended Crop</th>
+                            <th class="py-3 px-4">Confidence</th>
+                            <th class="py-3 px-4">Yield Rate</th>
+                            <th class="py-3 px-4">Total Harvest</th>
+                            <th class="py-3 px-4">Estimated Profit</th>
+                            <th class="py-3 px-4">Season</th>
+                            <th class="py-3 px-4 text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100" id="history-tbody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VIEW 6: ACADEMIC BENCHMARKS & MODEL AUDIT -->
+        <!-- ============================================================ -->
+        <div id="view-benchmarks" class="hidden space-y-8">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <span class="text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                    Rigorous Model Evaluation
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Machine Learning Benchmarking & Audit</h2>
+                <p class="text-sm text-slate-600">
+                    Comparative validation across 7 multi-class classification algorithms and 5 regression architectures under identical 5-fold cross-validation.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow overflow-x-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Stage 1: Multi-Class Crop Classification Benchmark</h3>
+                        <p class="text-xs text-slate-500">Dataset: 2,200 observations, 22 balanced crop categories, 7 continuous features</p>
+                    </div>
+                    <span class="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800">Top: Random Forest (99.55%)</span>
+                </div>
+
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-200 bg-slate-50 text-slate-600 text-xs uppercase font-semibold">
+                            <th class="py-3 px-4">Algorithm</th>
+                            <th class="py-3 px-4">5-Fold CV Accuracy</th>
+                            <th class="py-3 px-4">Hold-out Test Accuracy</th>
+                            <th class="py-3 px-4">F1-Score (Weighted)</th>
+                            <th class="py-3 px-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for c in benchmarks.classifiers %}
+                        <tr class="{% if c.best %}bg-emerald-50/50 font-bold{% else %}hover:bg-slate-50/50{% endif %}">
+                            <td class="py-3.5 px-4 text-slate-900">
+                                <div class="flex items-center gap-2">
+                                    {% if c.best %}<i data-lucide="award" class="w-4 h-4 text-amber-500"></i>{% endif %}
+                                    <span>{{ c.model }}</span>
+                                </div>
+                            </td>
+                            <td class="py-3.5 px-4 font-mono text-slate-700">{{ c.cv_accuracy }}%</td>
+                            <td class="py-3.5 px-4 font-mono text-emerald-700">{{ c.test_accuracy }}%</td>
+                            <td class="py-3.5 px-4 font-mono text-slate-700">{{ c.f1_score }}%</td>
+                            <td class="py-3.5 px-4">
+                                {% if c.best %}
+                                    <span class="px-2 py-0.5 rounded text-xs bg-emerald-600 text-white font-semibold">Active Model</span>
+                                {% else %}
+                                    <span class="text-xs text-slate-400 font-normal">Benchmarked</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 card-shadow overflow-x-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900">Stage 2: Regional Yield Regression Benchmark</h3>
+                        <p class="text-xs text-slate-500">Historical agricultural production data in India (246K records, states, seasons, acreage)</p>
+                    </div>
+                    <span class="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-800">Top: XGBoost (R² = 0.7573)</span>
+                </div>
+
+                <table class="w-full text-left text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-200 bg-slate-50 text-slate-600 text-xs uppercase font-semibold">
+                            <th class="py-3 px-4">Algorithm</th>
+                            <th class="py-3 px-4">R² Score (Variance Explained)</th>
+                            <th class="py-3 px-4">MAE (Tons/Hectare)</th>
+                            <th class="py-3 px-4">RMSE</th>
+                            <th class="py-3 px-4">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        {% for r in benchmarks.regressors %}
+                        <tr class="{% if r.best %}bg-blue-50/50 font-bold{% else %}hover:bg-slate-50/50{% endif %}">
+                            <td class="py-3.5 px-4 text-slate-900">
+                                <div class="flex items-center gap-2">
+                                    {% if r.best %}<i data-lucide="award" class="w-4 h-4 text-blue-600"></i>{% endif %}
+                                    <span>{{ r.model }}</span>
+                                </div>
+                            </td>
+                            <td class="py-3.5 px-4 font-mono text-blue-700">{{ r.r2 }}</td>
+                            <td class="py-3.5 px-4 font-mono text-slate-700">{{ r.mae }}</td>
+                            <td class="py-3.5 px-4 font-mono text-slate-700">{{ r.rmse }}</td>
+                            <td class="py-3.5 px-4">
+                                {% if r.best %}
+                                    <span class="px-2 py-0.5 rounded text-xs bg-blue-600 text-white font-semibold">Active Regressor</span>
+                                {% else %}
+                                    <span class="text-xs text-slate-400 font-normal">Benchmarked</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- VIEW 7: TEAM ROCKET CREDITS & INSTITUTION -->
+        <!-- ============================================================ -->
+        <div id="view-about" class="hidden space-y-8">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <span class="text-xs font-bold uppercase tracking-widest text-emerald-600 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                    Academic Project Submission
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Bennett University — School of Computer Science Engineering</h2>
+                <p class="text-sm text-slate-600">
+                    B.Tech Computer Science Engineering | Machine Learning Subject Project
+                </p>
+            </div>
+
+            <div class="bg-white rounded-2xl p-8 border border-slate-200/80 card-shadow max-w-3xl mx-auto">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+                    <div>
+                        <span class="text-xs font-bold text-red-600 uppercase tracking-wider">Engineering Cohort</span>
+                        <h3 class="text-2xl font-black text-slate-900">TEAM ROCKET 🚀</h3>
+                    </div>
+                    <span class="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-semibold">Academic Year 2025-2026</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/70 text-center">
+                        <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 font-bold mx-auto flex items-center justify-center mb-2">MG</div>
+                        <h4 class="font-bold text-slate-900 text-sm">Manan Gupta</h4>
+                        <span class="text-xs font-mono text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded mt-1 inline-block">S25CSEU0768</span>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/70 text-center">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-800 font-bold mx-auto flex items-center justify-center mb-2">VA</div>
+                        <h4 class="font-bold text-slate-900 text-sm">Vansh Agarwal</h4>
+                        <span class="text-xs font-mono text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded mt-1 inline-block">S25CSEU0743</span>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/70 text-center">
+                        <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-800 font-bold mx-auto flex items-center justify-center mb-2">AG</div>
+                        <h4 class="font-bold text-slate-900 text-sm">Akasshat Garg</h4>
+                        <span class="text-xs font-mono text-purple-700 font-semibold bg-purple-50 px-2 py-0.5 rounded mt-1 inline-block">S25CSEU0755</span>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="text-xs text-slate-500 text-center sm:text-left">
+                        <p class="font-semibold text-slate-700">Milestone 1 Deliverables:</p>
+                        <p>Problem Identification, Existing Solution Analysis, Objectives & Datasets</p>
+                    </div>
+                    <a href="/api/download/report" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow transition-all">
+                        <i data-lucide="download" class="w-4 h-4"></i> Download Word Report (.docx)
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- MODAL: EDIT BUDGET & LAND AREA -->
+        <!-- ============================================================ -->
+        <div id="modal-edit-profile" onclick="if(event.target === this) closeEditProfileModal()" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 card-shadow border border-slate-200 space-y-6 relative animate-in fade-in zoom-in-95 duration-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            <i data-lucide="sliders-horizontal" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">Edit Budget & Land Area</h3>
+                            <p class="text-xs text-slate-500">Live recalculation of farm expenses & profits</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="closeEditProfileModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-bold text-slate-700">Planned Seasonal Budget (₹) *</label>
+                            <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200" id="edit-budget-preview">₹50,000</span>
+                        </div>
+                        <input type="number" id="edit-budget" min="1000" max="10000000" step="5000" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" oninput="document.getElementById('edit-budget-preview').textContent = '₹' + Number(this.value).toLocaleString('en-IN')" onkeydown="if(event.key === 'Enter') saveProfileEdits()">
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-slate-700">Cultivable Land Area *</label>
+                            <div class="flex items-center gap-2 text-xs">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="edit-unit" value="Acres" checked class="peer sr-only" onchange="document.getElementById('edit-unit-label').textContent = 'Acres'">
+                                    <span class="px-2.5 py-0.5 rounded border border-slate-200 peer-checked:bg-emerald-600 peer-checked:text-white text-[11px] font-semibold transition-all">Acres</span>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="edit-unit" value="Hectares" class="peer sr-only" onchange="document.getElementById('edit-unit-label').textContent = 'Hectares'">
+                                    <span class="px-2.5 py-0.5 rounded border border-slate-200 peer-checked:bg-emerald-600 peer-checked:text-white text-[11px] font-semibold transition-all">Hectares</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <input type="number" id="edit-area" min="0.1" max="10000" step="0.5" class="w-full text-sm font-medium rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none transition-all" onkeydown="if(event.key === 'Enter') saveProfileEdits()">
+                            <span class="absolute right-3.5 top-2.5 text-xs text-slate-400 font-semibold" id="edit-unit-label">Acres</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center gap-3">
+                    <button type="button" onclick="closeEditProfileModal()" class="w-1/3 py-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-sm transition-all">
+                        Cancel
+                    </button>
+                    <button type="button" id="btn-save-edit-profile" onclick="saveProfileEdits()" class="w-2/3 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                        <span id="btn-save-edit-text">Update & Recalculate</span>
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 bg-white py-6 mt-16 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>© 2026 Crop Recommendation & Yield Prediction System • Machine Learning Subject • Bennett University</p>
+        </div>
+    </footer>
+
+    <!-- Client-Side JavaScript Application Logic -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
