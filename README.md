@@ -211,6 +211,6 @@ All 8 test suites (including Stage 1 classification, Stage 2 regression, 2-stage
 
 | S.No. | Student Name | Enrolment No. | Role & Contribution |
 |---|---|---|---|
-| 1 | **Manan Gupta** | `S25CSEU0768` | Full-Stack Architecture, Pipeline Integration & Economics Engine |
-| 2 | **Vansh Agarwal** | `S25CSEU0743` | Machine Learning Modeling, Hyperparameter Tuning & Benchmarking |
+| 1 | **Manan Gupta** | `S25CSEU0768` | Machine Learning Modeling, Hyperparameter Tuning & Benchmarking |
+| 2 | **Vansh Agarwal** | `S25CSEU0743` | Full-Stack Architecture, Pipeline Integration & Economics Engine  |
 | 3 | **Akasshat Garg** | `S25CSEU0755` | Data Preprocessing, EDA, SQLite Relational Database & Testing |
